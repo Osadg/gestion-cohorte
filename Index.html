@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion Cohorte 3 PADAAM</title>
+  
+  <!-- Inclure Bootstrap pour le style -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Inclure Font Awesome pour les icônes -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  
+  <!-- Style personnalisé -->
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .app-header {
+      background-color: #28a745;
+      color: white;
+      padding: 15px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .nav-tabs .nav-link {
+      color: #495057;
+    }
+    
+    .nav-tabs .nav-link.active {
+      background-color: #28a745;
+      color: white;
+      border-color: #28a745;
+    }
+    
+    .required-field::after {
+      content: " *";
+      color: red;
+      font-weight: bold;
+    }
+    
+    .spinner-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 200px;
+    }
+    
+    .btn-primary {
+      background-color: #28a745;
+      border-color: #28a745;
+    }
+    
+    .btn-primary:hover {
+      background-color: #218838;
+      border-color: #1e7e34;
+    }
+    
+    .card {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    
+    .table thead {
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- En-tête de l'application -->
+  <header class="app-header">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <!-- Colonne gauche : Titre -->
+        <div class="col-md-8">
+          <h1><i class="fas fa-leaf me-2"></i> Gestion Cohorte 3 PADAAM</h1>
+        </div>
+
+        <!-- Colonne droite : Dernière actualisation -->
+        <div class="col-md-4 text-end">
+          <span id="lastUpdated" class="text-white fst-italic small"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenu principal -->
+  <div class="container-fluid mt-4">
+    <!-- Onglets de navigation -->
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="cohorte-tab" data-bs-toggle="tab" data-bs-target="#cohorte" type="button" role="tab" aria-controls="cohorte" aria-selected="true">
+          <i class="fas fa-users me-2"></i>Nouvelle Cohorte
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="listeop-tab" data-bs-toggle="tab" data-bs-target="#listeop" type="button" role="tab" aria-controls="listeop" aria-selected="false">
+          <i class="fas fa-list me-2"></i>Liste OP
+        </button>
+      </li>
+    </ul>
+    
+    <!-- Contenu des onglets -->
+    <div class="tab-content" id="myTabContent">
+      <!-- Onglet Nouvelle Cohorte -->
+      <div class="tab-pane fade show active" id="cohorte" role="tabpanel" aria-labelledby="cohorte-tab">
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <div class="d-flex justify-content-between mb-3">
+              <h2>Gestion des Exploitants</h2>
+              <div>
+                <button type="button" class="btn btn-primary me-2" id="btnAddCohorte">
+                  <i class="fas fa-plus me-1"></i> Nouvel Exploitant
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="btnRefreshCohorte">
+                  <i class="fas fa-sync-alt me-1"></i> Actualiser
+                </button>
+              </div>
+            </div>
+            
+            <!-- Filtres de recherche -->
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtres</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterCodeExploitant" class="form-label">Code Exploitant</label>
+                      <input type="text" class="form-control" id="filterCodeExploitant">
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterNomExploitant" class="form-label">Nom Exploitant</label>
+                      <input type="text" class="form-control" id="filterNomExploitant">
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterDepartement" class="form-label">Département</label>
+                      <select class="form-select" id="filterDepartement">
+                        <option value="">Tous</option>
+                        <!-- Options chargées dynamiquement -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterCommune" class="form-label">Commune</label>
+                      <select class="form-select" id="filterCommune">
+                        <option value="">Toutes</option>
+                        <!-- Options chargées dynamiquement -->
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Première (et unique) ligne de filtres OP/Pôle/Saison/Rechercher -->
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterDenominationOP" class="form-label">Dénomination OP</label>
+                      <select class="form-select" id="filterDenominationOP">
+                        <option value="">Toutes</option>
+                        <!-- Options chargées dynamiquement -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterPole" class="form-label">Pôle</label>
+                      <select class="form-select" id="filterPole">
+                        <option value="">Tous</option>
+                        <!-- Options chargées dynamiquement -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="mb-3">
+                      <label for="filterSaison" class="form-label">Saison</label>
+                      <select class="form-select" id="filterSaison">
+                        <option value="">Toutes</option>
+                        <!-- Options chargées dynamiquement -->
+                      </select>
+                    </div>
+                  </div>
+                  <div class="mb-3 d-flex align-items-end">
+                    <button type="button" class="btn btn-primary w-100" id="btnApplyFilters">
+                      <i class="fas fa-search me-1"></i> Rechercher
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Bouton "Afficher uniquement les entrées incomplètes" -->
+                <div class="row">
+                  <div class="col-12">
+                    <div class="mb-3 d-flex justify-content-end">
+                      <button type="button" class="btn btn-warning w-100" id="btnShowIncomplete">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Afficher uniquement les entrées incomplètes
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Tableau des données -->
+            <div class="card">
+              <div class="card-body p-0">
+                <div id="cohorteDataContainer">
+                  <div class="spinner-container">
+                    <div class="spinner-border text-success" role="status">
+                      <span class="visually-hidden">Chargement...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- Fin onglet Nouvelle Cohorte -->
+      
+      <!-- Onglet Liste OP -->
+      <div class="tab-pane fade" id="listeop" role="tabpanel" aria-labelledby="listeop-tab">
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <div class="d-flex justify-content-between mb-3">
+              <h2>Liste des Organisations de Producteurs</h2>
+              <button type="button" class="btn btn-outline-secondary" id="btnRefreshListeOP">
+                <i class="fas fa-sync-alt me-1"></i> Actualiser
+              </button>
+            </div>
+            
+            <!-- Tableau des données Liste OP -->
+            <div class="card">
+              <div class="card-body p-0">
+                <div id="listeOPDataContainer">
+                  <div class="spinner-container">
+                    <div class="spinner-border text-success" role="status">
+                      <span class="visually-hidden">Chargement...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- Fin onglet Liste OP -->
+    </div> <!-- Fin .tab-content -->
+  </div> <!-- Fin .container -->
+  
+  <!-- Modales pour la gestion des données -->
+  <!-- Modal Formulaire Cohorte -->
+  <div class="modal fade" id="cohorteFormModal" tabindex="-1" aria-labelledby="cohorteFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title" id="cohorteFormModalLabel">Ajouter un Exploitant</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="cohorteForm">
+            <input type="hidden" id="rowIndex" value="">
+            
+            <div class="accordion" id="formAccordion">
+              <!-- Section Informations Personnelles -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingPersonal">
+                  <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePersonal" aria-expanded="true" aria-controls="collapsePersonal">
+                    Informations Personnelles
+                  </button>
+                </h2>
+                <div id="collapsePersonal" class="accordion-collapse collapse show" aria-labelledby="headingPersonal" data-bs-parent="#formAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="codeExploitant" class="form-label">Code Exploitant</label>
+                          <input type="text" class="form-control" id="codeExploitant" readonly>
+                          <small class="form-text text-muted">Généré automatiquement</small>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="periodeAdhesion" class="form-label required-field">Période d'Adhésion</label>
+                          <select class="form-select" id="periodeAdhesion" required>
+                            <option value="">Sélectionner...</option>
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="nomExploitant" class="form-label required-field">Nom Exploitant</label>
+                          <input type="text" class="form-control" id="nomExploitant" required>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="prenomExploitant" class="form-label required-field">Prénom Exploitant</label>
+                          <input type="text" class="form-control" id="prenomExploitant" required>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="photoExploitant" class="form-label">Photo Exploitant</label>
+                          <div class="d-flex flex-column">
+                            <input type="text" class="form-control mb-2" id="photoExploitant" placeholder="URL de l'image ou base64">
+                            <input type="file" class="form-control" id="photoExploitantFile" accept="image/*">
+                          </div>
+                          <div class="mt-2 text-center">
+                            <img id="photoExploitantPreview" src="" style="max-width:100px; max-height:100px; display:none; border-radius:50%;" class="border" />
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="sexe" class="form-label required-field">Sexe</label>
+                          <select class="form-select" id="sexe" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="M">MASCULIN</option>
+                            <option value="F">FÉMININ</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="photoIDNationale" class="form-label">Photo ID Nationale</label>
+                          <div class="d-flex flex-column">
+                            <input type="text" class="form-control mb-2" id="photoIDNationale" placeholder="URL de l'image ou base64">
+                            <input type="file" class="form-control" id="photoIDNationaleFile" accept="image/*">
+                          </div>
+                          <div class="mt-2 text-center">
+                            <img id="photoIDNationalePreview" src="" style="max-width:100px; max-height:100px; display:none; border-radius:50%;" class="border" />
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="anneeNaissance" class="form-label required-field">Année naissance</label>
+                          <input type="number" class="form-control" id="anneeNaissance" min="1900" max="2025" required>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="trancheAge" class="form-label required-field">Tranche d'âge</label>
+                          <select class="form-select" id="trancheAge" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="JEUNE">JEUNE</option>
+                            <option value="ADULTE">ADULTE</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="contact1" class="form-label required-field">Contact 1 (sans +229 01)</label>
+                          <input type="text" class="form-control" id="contact1" required>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="contact2" class="form-label">Contact 2 (sans +229 01)</label>
+                          <input type="text" class="form-control" id="contact2">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="contactSC" class="form-label">Contact S/C (sans +229 01)</label>
+                          <input type="text" class="form-control" id="contactSC">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Section Organisation -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOrganisation">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOrganisation" aria-expanded="false" aria-controls="collapseOrganisation">
+                    Organisation & Localisation
+                  </button>
+                </h2>
+                <div id="collapseOrganisation" class="accordion-collapse collapse" aria-labelledby="headingOrganisation" data-bs-parent="#formAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="typesConseils" class="form-label required-field">Types conseils</label>
+                          <select class="form-select" id="typesConseils" required multiple size="3">
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                          <small class="form-text text-muted">Maintenez Ctrl (ou Cmd sur Mac) pour sélectionner plusieurs options</small>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="denominationOP" class="form-label required-field">Dénomination l'OP</label>
+                          <input type="text" class="form-control" id="denominationOP" required>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="pole" class="form-label required-field">Pôle</label>
+                          <select class="form-select" id="pole" required>
+                            <option value="">Sélectionner...</option>
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="departement" class="form-label required-field">Département</label>
+                          <select class="form-select" id="departement" required>
+                            <option value="">Sélectionner...</option>
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="commune" class="form-label required-field">Commune</label>
+                          <select class="form-select" id="commune" required>
+                            <option value="">Sélectionner...</option>
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="arrondissement" class="form-label required-field">Arrondissement</label>
+                          <input type="text" class="form-control" id="arrondissement" required>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="village" class="form-label required-field">Village</label>
+                          <input type="text" class="form-control" id="village" required>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="saison" class="form-label required-field">Saison</label>
+                          <select class="form-select" id="saison" required>
+                            <option value="">Sélectionner...</option>
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Section Production -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingProduction">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProduction" aria-expanded="false" aria-controls="collapseProduction">
+                    Informations de Production
+                  </button>
+                </h2>
+                <div id="collapseProduction" class="accordion-collapse collapse" aria-labelledby="headingProduction" data-bs-parent="#formAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="typeSpeculation" class="form-label required-field">Type spéculation</label>
+                          <select class="form-select" id="typeSpeculation" required>
+                            <option value="">Sélectionner...</option>
+                            <!-- Options chargées dynamiquement -->
+                          </select>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="nomVarieteLocal" class="form-label">Nom la variété « local »</label>
+                          <input type="text" class="form-control" id="nomVarieteLocal">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="superficieEmblavee" class="form-label">Superficie emblavée « ha »</label>
+                          <input type="number" class="form-control" id="superficieEmblavee" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteSemence" class="form-label">Quantité semence « kg »</label>
+                          <input type="number" class="form-control" id="quantiteSemence" step="0.01">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutSemence" class="form-label">Coût semence « FCFA »</label>
+                          <input type="number" class="form-control" id="coutSemence">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="modeLabour" class="form-label">Mode labour</label>
+                          <input type="text" class="form-control" id="modeLabour">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="modeSemis" class="form-label">Mode semis</label>
+                          <input type="text" class="form-control" id="modeSemis">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="densiteSemis" class="form-label">Densité semis « Nb plant/ha »</label>
+                          <input type="number" class="form-control" id="densiteSemis">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="periodeSemis" class="form-label">Période semis</label>
+                          <input type="text" class="form-control" id="periodeSemis">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="dureeCycle" class="form-label">Durée cycle « J »</label>
+                          <input type="number" class="form-control" id="dureeCycle">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteEngrais" class="form-label">Quantité engrais « kg »</label>
+                          <input type="number" class="form-control" id="quantiteEngrais" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutEngrais" class="form-label">Coût engrais « FCFA »</label>
+                          <input type="number" class="form-control" id="coutEngrais">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Section Économique -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingEconomique">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEconomique" aria-expanded="false" aria-controls="collapseEconomique">
+                    Informations Économiques
+                  </button>
+                </h2>
+                <div id="collapseEconomique" class="accordion-collapse collapse" aria-labelledby="headingEconomique" data-bs-parent="#formAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteInsecticide" class="form-label">Quantité insecticide « L »</label>
+                          <input type="number" class="form-control" id="quantiteInsecticide" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutInsecticide" class="form-label">Coût insecticide « FCFA »</label>
+                          <input type="number" class="form-control" id="coutInsecticide">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteHerbicideG" class="form-label">Quantité Herbicide « g »</label>
+                          <input type="number" class="form-control" id="quantiteHerbicideG" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteHerbicideL" class="form-label">Quantité Herbicide « L »</label>
+                          <input type="number" class="form-control" id="quantiteHerbicideL" step="0.01">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutHerbicide" class="form-label">Coût Herbicide « FCFA »</label>
+                          <input type="number" class="form-control" id="coutHerbicide">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutTotalIntrants" class="form-label">Coût Total Intrants</label>
+                          <input type="number" class="form-control" id="coutTotalIntrants">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteTravailMOF" class="form-label">Quantité travail MOF « HJ »</label>
+                          <input type="number" class="form-control" id="quantiteTravailMOF" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteTravailRE" class="form-label">Quantité travail RE « HJ »</label>
+                          <input type="number" class="form-control" id="quantiteTravailRE" step="0.01">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="valeurMOFT" class="form-label">Valeur MOFT « MOF+RE »</label>
+                          <input type="number" class="form-control" id="valeurMOFT">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteTravailAutre" class="form-label">Quantité travail autre « HJ »</label>
+                          <input type="number" class="form-control" id="quantiteTravailAutre" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="valeurTravailAutre" class="form-label">Valeur travail autre « FCFA »</label>
+                          <input type="number" class="form-control" id="valeurTravailAutre">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteTravailMooc" class="form-label">Quantité travail Mooc « HJ »</label>
+                          <input type="number" class="form-control" id="quantiteTravailMooc" step="0.01">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutTravailMooc" class="form-label">Coût travail Mooc « FCFA »</label>
+                          <input type="number" class="form-control" id="coutTravailMooc">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutTotalMO" class="form-label">Coût total MO « FCFA »</label>
+                          <input type="number" class="form-control" id="coutTotalMO">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="autresChargesVariables" class="form-label">Autres charges variables</label>
+                          <input type="number" class="form-control" id="autresChargesVariables">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="coutProduction" class="form-label">Coût production</label>
+                          <input type="number" class="form-control" id="coutProduction">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Section Résultats -->
+              <div class="accordion-item">
+                <h2 class="accordion-header" id="headingResults">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseResults" aria-expanded="false" aria-controls="collapseResults">
+                    Résultats
+                  </button>
+                </h2>
+                <div id="collapseResults" class="accordion-collapse collapse" aria-labelledby="headingResults" data-bs-parent="#formAccordion">
+                  <div class="accordion-body">
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="quantiteRecolte" class="form-label">Quantité récolté « KG »</label>
+                          <input type="number" class="form-control" id="quantiteRecolte" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="rendement" class="form-label">Rendement « Kg/ha »</label>
+                          <input type="number" class="form-control" id="rendement" step="0.01">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="prix" class="form-label">Prix « FCFA »</label>
+                          <input type="number" class="form-control" id="prix">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="produitActivite" class="form-label">Produit d'activité</label>
+                          <input type="number" class="form-control" id="produitActivite">
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="row">
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="mari" class="form-label">MARI</label>
+                          <input type="number" class="form-control" id="mari">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="mariHa" class="form-label">MARI/ha</label>
+                          <input type="number" class="form-control" id="mariHa">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="mb" class="form-label">MB</label>
+                          <input type="number" class="form-control" id="mb">
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="mb-3">
+                          <label for="mbHa" class="form-label">MB/ha</label>
+                          <input type="number" class="form-control" id="mbHa">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-primary" id="btnSaveCohorte">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal de confirmation de suppression -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirmation de suppression</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Êtes-vous sûr de vouloir supprimer cet enregistrement?</p>
+          <p>Cette action est irréversible.</p>
+          <input type="hidden" id="deleteRowIndex" value="">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-danger" id="btnConfirmDelete">Supprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

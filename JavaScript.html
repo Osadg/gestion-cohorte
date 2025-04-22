@@ -1,0 +1,1087 @@
+<!-- JavaScript pour l'application -->
+<script>
+  // Variables globales
+  let cohorteData = null;
+  let listeOPData = null;
+  let referenceData = null;
+  
+  // Initialisation de l'application quand la page est chargée
+  window.onload = function() {
+    console.log("Démarrage de l'application...");
+    
+    // Configuration des écouteurs d'événements
+    setupEventListeners();
+    
+    // Charger les données initiales
+    loadCohorteData();
+    
+    console.log("Initialisation terminée");
+  };
+  
+  // Configuration de tous les écouteurs d'événements
+  function setupEventListeners() {
+    // Onglet Liste OP
+    const listeOpTab = document.getElementById('listeop-tab');
+    if (listeOpTab) {
+      listeOpTab.addEventListener('click', function() {
+        if (!listeOPData) {
+          loadListeOPData();
+        }
+      });
+    }
+    
+    // Boutons principaux
+    const btnRefreshCohorte = document.getElementById('btnRefreshCohorte');
+    if (btnRefreshCohorte) btnRefreshCohorte.addEventListener('click', loadCohorteData);
+    
+    const btnRefreshListeOP = document.getElementById('btnRefreshListeOP');
+    if (btnRefreshListeOP) btnRefreshListeOP.addEventListener('click', loadListeOPData);
+    
+    const btnAddCohorte = document.getElementById('btnAddCohorte');
+    if (btnAddCohorte) btnAddCohorte.addEventListener('click', showAddCohorteForm);
+    
+    const btnSaveCohorte = document.getElementById('btnSaveCohorte');
+    if (btnSaveCohorte) btnSaveCohorte.addEventListener('click', saveCohorteData);
+    
+    const btnApplyFilters = document.getElementById('btnApplyFilters');
+    if (btnApplyFilters) btnApplyFilters.addEventListener('click', applyFilters);
+    
+    const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+    if (btnConfirmDelete) btnConfirmDelete.addEventListener('click', deleteCohorteEntry);
+    
+    const btnShowIncomplete = document.getElementById('btnShowIncomplete');
+    if (btnShowIncomplete) btnShowIncomplete.addEventListener('click', showIncompleteEntries);
+    
+    // Écouteur d'événement pour calculer la tranche d'âge
+    const anneeNaissanceField = document.getElementById('anneeNaissance');
+    if (anneeNaissanceField) {
+      anneeNaissanceField.addEventListener('change', calculateAndSetTrancheAge);
+      anneeNaissanceField.addEventListener('input', calculateAndSetTrancheAge);
+    }
+    
+    // Écouteurs pour les champs de photo
+    setupPhotoListeners();
+    
+    // Écouteurs pour la conversion en majuscules
+    setupUppercaseListeners();
+  }
+  
+  // Fonction pour configurer les écouteurs pour les champs de photo
+  function setupPhotoListeners() {
+    // Bouton Photo Exploitant
+    const btnPhotoExploitant = document.getElementById('btnPhotoExploitant');
+    if (btnPhotoExploitant) {
+      btnPhotoExploitant.addEventListener('click', function() {
+        const fileInput = document.getElementById('photoExploitantFile');
+        if (fileInput) fileInput.click();
+      });
+    }
+    
+    // Bouton Photo ID
+    const btnPhotoIDNationale = document.getElementById('btnPhotoIDNationale');
+    if (btnPhotoIDNationale) {
+      btnPhotoIDNationale.addEventListener('click', function() {
+        const fileInput = document.getElementById('photoIDNationaleFile');
+        if (fileInput) fileInput.click();
+      });
+    }
+    
+    // Écouteur sélection de fichier Photo Exploitant
+    const photoExploitantFile = document.getElementById('photoExploitantFile');
+    if (photoExploitantFile) {
+      photoExploitantFile.addEventListener('change', function(event) {
+        handleImageUpload(event, 'photoExploitant', 'photoExploitantPreview');
+      });
+    }
+    
+    // Écouteur sélection de fichier Photo ID
+    const photoIDNationaleFile = document.getElementById('photoIDNationaleFile');
+    if (photoIDNationaleFile) {
+      photoIDNationaleFile.addEventListener('change', function(event) {
+        handleImageUpload(event, 'photoIDNationale', 'photoIDNationalePreview');
+      });
+    }
+    
+    // Écouteur URL Photo Exploitant
+    const photoExploitantUrl = document.getElementById('photoExploitant');
+    if (photoExploitantUrl) {
+      photoExploitantUrl.addEventListener('input', function() {
+        updateImagePreview('photoExploitant', 'photoExploitantPreview');
+      });
+    }
+    
+    // Écouteur URL Photo ID
+    const photoIDNationaleUrl = document.getElementById('photoIDNationale');
+    if (photoIDNationaleUrl) {
+      photoIDNationaleUrl.addEventListener('input', function() {
+        updateImagePreview('photoIDNationale', 'photoIDNationalePreview');
+      });
+    }
+  }
+  
+  // Fonction pour configurer les écouteurs pour la conversion en majuscules
+  function setupUppercaseListeners() {
+    const formElement = document.getElementById('cohorteForm');
+    if (!formElement) return;
+    
+    const textInputs = formElement.querySelectorAll('input[type="text"], select:not([id="anneeNaissance"])');
+    textInputs.forEach(input => {
+      input.addEventListener('blur', function() {
+        if (this.value) {
+          this.value = this.value.toUpperCase();
+        }
+      });
+    });
+  }
+  
+  // Fonction pour mettre à jour la date et l'heure de dernière actualisation
+  function updateLastUpdated() {
+    const lastUpdatedElement = document.getElementById('lastUpdated');
+    if (!lastUpdatedElement) return;
+    
+    const now = new Date();
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    const dateTimeStr = now.toLocaleDateString('fr-FR', options);
+    lastUpdatedElement.textContent = `Dernière actualisation: ${dateTimeStr}`;
+  }
+  
+  // Fonction pour initialiser le formulaire
+  function initializeForm() {
+    // Remplir les options pour Types conseils
+    const typesConseilsSelect = document.getElementById('typesConseils');
+    if (typesConseilsSelect) {
+      typesConseilsSelect.innerHTML = '';
+      const typeOptions = ['CEF', 'CdG-OP', 'CTS'];
+      typeOptions.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option;
+        optElement.textContent = option;
+        typesConseilsSelect.appendChild(optElement);
+      });
+    }
+    
+    // Remplir les options pour Saison
+    const saisonSelect = document.getElementById('saison');
+    if (saisonSelect) {
+      // Conserver l'option par défaut si elle existe
+      let defaultOption = null;
+      if (saisonSelect.options.length > 0) {
+        defaultOption = saisonSelect.options[0];
+      }
+      
+      saisonSelect.innerHTML = '';
+      if (defaultOption) {
+        saisonSelect.appendChild(defaultOption);
+      }
+      
+      const saisonOptions = ['GRANDE', 'PETITE'];
+      saisonOptions.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option;
+        optElement.textContent = option;
+        saisonSelect.appendChild(optElement);
+      });
+    }
+  }
+  
+  // Chargement des données de Nouvelle Cohorte
+  function loadCohorteData() {
+    const cohorteDataContainer = document.getElementById('cohorteDataContainer');
+    if (!cohorteDataContainer) return;
+    
+    cohorteDataContainer.innerHTML = `
+      <div class="spinner-container">
+        <div class="spinner-border text-success" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+      </div>
+    `;
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        cohorteData = result;
+        renderCohorteTable(result);
+        loadReferenceData();
+        updateLastUpdated();
+      })
+      .withFailureHandler(function(error) {
+        cohorteDataContainer.innerHTML = `
+          <div class="alert alert-danger m-3" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            Erreur lors du chargement des données: ${error}
+          </div>
+        `;
+      })
+      .getAllCohorteData();
+  }
+  
+  // Chargement des données de Liste OP
+  function loadListeOPData() {
+    const listeOPDataContainer = document.getElementById('listeOPDataContainer');
+    if (!listeOPDataContainer) return;
+    
+    listeOPDataContainer.innerHTML = `
+      <div class="spinner-container">
+        <div class="spinner-border text-success" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+      </div>
+    `;
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        listeOPData = result;
+        renderListeOPTable(result);
+        updateLastUpdated();
+      })
+      .withFailureHandler(function(error) {
+        listeOPDataContainer.innerHTML = `
+          <div class="alert alert-danger m-3" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            Erreur lors du chargement des données: ${error}
+          </div>
+        `;
+      })
+      .getAllListeOPData();
+  }
+  
+  // Chargement des données de référence
+  function loadReferenceData() {
+    google.script.run
+      .withSuccessHandler(function(result) {
+        referenceData = result;
+        populateFilterOptions();
+        populateFormSelects();
+      })
+      .withFailureHandler(function(error) {
+        console.error("Erreur lors du chargement des données de référence:", error);
+      })
+      .getReferenceData();
+  }
+  
+  // Fonction pour remplir les options des filtres
+  function populateFilterOptions() {
+    if (!referenceData) return;
+    
+    populateSelect('filterDepartement', referenceData.departements);
+    populateSelect('filterCommune', referenceData.communes);
+    populateSelect('filterDenominationOP', referenceData.denominationsOP);
+    populateSelect('filterPole', referenceData.poles);
+    populateSelect('filterSaison', referenceData.saisons);
+  }
+  
+  // Fonction pour remplir les selects du formulaire
+  function populateFormSelects() {
+    if (!referenceData) return;
+    
+    populateSelect('periodeAdhesion', referenceData.periodesAdhesion);
+    populateSelect('pole', referenceData.poles);
+    populateSelect('departement', referenceData.departements);
+    populateSelect('commune', referenceData.communes);
+  }
+  
+  // Fonction d'aide pour remplir un select
+  function populateSelect(elementId, options) {
+    const select = document.getElementById(elementId);
+    if (!select || select.tagName !== 'SELECT') return;
+    
+    // Pour les selects qui sont gérés ailleurs
+    if (elementId === 'typesConseils' || elementId === 'saison') return;
+    
+    // Conserver l'option par défaut
+    const defaultOption = select.options[0];
+    select.innerHTML = '';
+    select.appendChild(defaultOption);
+    
+    // Ajouter les options
+    if (Array.isArray(options)) {
+      options.forEach(option => {
+        const optElement = document.createElement('option');
+        optElement.value = option;
+        optElement.textContent = option;
+        select.appendChild(optElement);
+      });
+    }
+  }
+  
+  // Fonction pour afficher le tableau des données de Nouvelle Cohorte
+  function renderCohorteTable(data) {
+    const cohorteDataContainer = document.getElementById('cohorteDataContainer');
+    if (!cohorteDataContainer) return;
+    
+    if (!data || !data.records || data.records.length === 0) {
+      cohorteDataContainer.innerHTML = `
+        <div class="alert alert-info m-3" role="alert">
+          <i class="fas fa-info-circle me-2"></i>
+          Aucune donnée disponible. Veuillez ajouter des entrées.
+        </div>
+      `;
+      return;
+    }
+    
+    // Liste des colonnes à afficher
+    const displayColumns = [
+      'Photo Exploitant',
+      'Code Exploitant',
+      'Nom Exploitant',
+      'Prénom Exploitant',
+      'Sexe',
+      'Contact 1 (sans +229 01)',
+      'Dénomination l\'OP',
+      'Département',
+      'Commune',
+      'Type spéculation'
+    ];
+    
+    // Calculer le nombre d'entrées incomplètes
+    const incompleteEntries = data.records.filter(record => !record.isComplete).length;
+    
+    let tableHtml = `<div class="table-responsive">`;
+    
+    // Alerte pour les entrées incomplètes
+    if (incompleteEntries > 0) {
+      tableHtml += `
+        <div class="alert alert-warning mt-2 mb-3" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          <strong>${incompleteEntries} entrée(s)</strong> avec des champs obligatoires manquants. 
+          Ces lignes sont surlignées en jaune. Veuillez les compléter.
+        </div>
+      `;
+    }
+    
+    tableHtml += `
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            ${displayColumns.map(column => `<th>${column}</th>`).join('')}
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    data.records.forEach(record => {
+      // Mise en surbrillance des entrées incomplètes
+      const rowClass = record.isComplete ? '' : 'table-warning';
+      
+      tableHtml += `<tr class="${rowClass}">`;
+      displayColumns.forEach(column => {
+        if (column === 'Photo Exploitant') {
+          // Affichage de la photo
+          const photoUrl = record[column] || '';
+          if (photoUrl) {
+            tableHtml += `<td><img src="${photoUrl}" class="rounded-circle" width="40" height="40" onerror="this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2220%22%20fill%3D%22%23ccc%22%2F%3E%3Cpath%20d%3D%22M20%2010C17.8%2010%2016%2011.8%2016%2014C16%2016.2%2017.8%2018%2020%2018C22.2%2018%2024%2016.2%2024%2014C24%2011.8%2022.2%2010%2020%2010M20%2026C15.3%2026%2012%2024.4%2012%2022V21.7C12%2019.4%2016.3%2017.7%2020%2017.7C23.7%2017.7%2028%2019.4%2028%2021.7V22C28%2024.3%2024.7%2026%2020%2026Z%22%20fill%3D%22%23666%22%2F%3E%3C%2Fsvg%3E'; this.onerror=null;"></td>`;
+          } else {
+            tableHtml += `<td><img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%220%200%2040%2040%22%3E%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2220%22%20fill%3D%22%23ccc%22%2F%3E%3Cpath%20d%3D%22M20%2010C17.8%2010%2016%2011.8%2016%2014C16%2016.2%2017.8%2018%2020%2018C22.2%2018%2024%2016.2%2024%2014C24%2011.8%2022.2%2010%2020%2010M20%2026C15.3%2026%2012%2024.4%2012%2022V21.7C12%2019.4%2016.3%2017.7%2020%2017.7C23.7%2017.7%2028%2019.4%2028%2021.7V22C28%2024.3%2024.7%2026%2020%2026Z%22%20fill%3D%22%23666%22%2F%3E%3C%2Fsvg%3E" class="rounded-circle" width="40" height="40"></td>`;
+          }
+        } else {
+          tableHtml += `<td>${record[column] || ''}</td>`;
+        }
+      });
+      
+      tableHtml += `
+        <td class="text-center">
+          <button class="btn btn-sm btn-outline-primary me-1" onclick="editCohorteEntry(${record.rowIndex})">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteCohorteEntry(${record.rowIndex})">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </td>
+      </tr>`;
+    });
+    
+    tableHtml += `
+        </tbody>
+      </table>
+      <div class="d-flex justify-content-between align-items-center p-2">
+        <span class="text-muted small">Total: ${data.records.length} enregistrements</span>
+        <span class="text-warning small">${incompleteEntries} entrée(s) incomplète(s)</span>
+      </div>
+    </div>`;
+    
+    cohorteDataContainer.innerHTML = tableHtml;
+  }
+  
+  // Fonction pour afficher le tableau des données de Liste OP
+  function renderListeOPTable(data) {
+    const listeOPDataContainer = document.getElementById('listeOPDataContainer');
+    if (!listeOPDataContainer) return;
+    
+    if (!data || !data.records || data.records.length === 0) {
+      listeOPDataContainer.innerHTML = `
+        <div class="alert alert-info m-3" role="alert">
+          <i class="fas fa-info-circle me-2"></i>
+          Aucune donnée disponible dans la liste des OP.
+        </div>
+      `;
+      return;
+    }
+    
+    let tableHtml = `
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              ${data.headers.map(header => `<th>${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+    `;
+    
+    data.records.forEach(record => {
+      tableHtml += `<tr>`;
+      data.headers.forEach(header => {
+        tableHtml += `<td>${record[header] || ''}</td>`;
+      });
+      tableHtml += `</tr>`;
+    });
+    
+    tableHtml += `
+          </tbody>
+        </table>
+        <div class="d-flex justify-content-between align-items-center p-2">
+          <span class="text-muted small">Total: ${data.records.length} enregistrements</span>
+        </div>
+      </div>
+    `;
+    
+    listeOPDataContainer.innerHTML = tableHtml;
+  }
+  
+  // Fonction pour appliquer les filtres
+  function applyFilters() {
+    const filterCriteria = {
+      'Code Exploitant': getValue('filterCodeExploitant'),
+      'Nom Exploitant': getValue('filterNomExploitant'),
+      'Département': getValue('filterDepartement'),
+      'Commune': getValue('filterCommune'),
+      'Dénomination l\'OP': getValue('filterDenominationOP'),
+      'Pôle': getValue('filterPole'),
+      'Saison': getValue('filterSaison')
+    };
+    
+    // Supprimer les critères vides
+    Object.keys(filterCriteria).forEach(key => {
+      if (!filterCriteria[key]) {
+        delete filterCriteria[key];
+      }
+    });
+    
+    // Afficher l'indicateur de chargement
+    const cohorteDataContainer = document.getElementById('cohorteDataContainer');
+    if (!cohorteDataContainer) return;
+    
+    cohorteDataContainer.innerHTML = `
+      <div class="spinner-container">
+        <div class="spinner-border text-success" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+      </div>
+    `;
+    
+    // Appliquer les filtres
+    google.script.run
+      .withSuccessHandler(function(result) {
+        renderCohorteTable(result);
+      })
+      .withFailureHandler(function(error) {
+        cohorteDataContainer.innerHTML = `
+          <div class="alert alert-danger m-3" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            Erreur lors du filtrage des données: ${error}
+          </div>
+        `;
+      })
+      .filterCohorteData(filterCriteria);
+  }
+  
+  // Fonction pour afficher uniquement les entrées incomplètes
+  function showIncompleteEntries() {
+    const filterCriteria = {
+      'Incomplet': 'true'
+    };
+    
+    const cohorteDataContainer = document.getElementById('cohorteDataContainer');
+    if (!cohorteDataContainer) return;
+    
+    cohorteDataContainer.innerHTML = `
+      <div class="spinner-container">
+        <div class="spinner-border text-success" role="status">
+          <span class="visually-hidden">Chargement...</span>
+        </div>
+      </div>
+    `;
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        renderCohorteTable(result);
+      })
+      .withFailureHandler(function(error) {
+        cohorteDataContainer.innerHTML = `
+          <div class="alert alert-danger m-3" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            Erreur lors du filtrage des données: ${error}
+          </div>
+        `;
+      })
+      .filterCohorteData(filterCriteria);
+  }
+  
+  // Fonction utilitaire pour obtenir la valeur d'un élément
+  function getValue(elementId) {
+    const element = document.getElementById(elementId);
+    return element ? element.value : '';
+  }
+  
+  // Fonction pour calculer et définir la tranche d'âge
+  function calculateAndSetTrancheAge() {
+    const anneeNaissanceField = document.getElementById('anneeNaissance');
+    const trancheAgeField = document.getElementById('trancheAge');
+    
+    if (!anneeNaissanceField || !trancheAgeField || !anneeNaissanceField.value) return;
+    
+    const anneeNaissance = parseInt(anneeNaissanceField.value);
+    const anneeActuelle = new Date().getFullYear();
+    const age = anneeActuelle - anneeNaissance;
+    
+    trancheAgeField.value = age <= 35 ? 'JEUNE' : 'ADULTE';
+  }
+  
+  // Fonction pour gérer le téléchargement d'images
+  function handleImageUpload(event, inputFieldId, previewImgId) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.match('image.*')) {
+      alert('Veuillez sélectionner une image valide.');
+      return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+      alert('La taille de l\'image ne doit pas dépasser 2MB.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const inputField = document.getElementById(inputFieldId);
+      if (inputField) {
+        inputField.value = e.target.result;
+        updateImagePreview(inputFieldId, previewImgId);
+      }
+    };
+    
+    reader.readAsDataURL(file);
+  }
+  
+  // Fonction pour mettre à jour la prévisualisation d'une image
+  function updateImagePreview(inputFieldId, previewImgId) {
+    const inputField = document.getElementById(inputFieldId);
+    const previewImg = document.getElementById(previewImgId);
+    
+    if (!inputField || !previewImg) return;
+    
+    const imageUrl = inputField.value.trim();
+    
+    if (imageUrl) {
+      previewImg.src = imageUrl;
+      previewImg.style.display = 'inline-block';
+      previewImg.onerror = function() {
+        previewImg.style.display = 'none';
+        previewImg.src = '';
+      };
+    } else {
+      previewImg.style.display = 'none';
+      previewImg.src = '';
+    }
+  }
+  
+  // Fonction pour afficher le formulaire d'ajout
+  function showAddCohorteForm() {
+    const form = document.getElementById('cohorteForm');
+    if (!form) return;
+    
+    form.reset();
+    setValue('rowIndex', '');
+    
+    // Générer automatiquement un code exploitant
+    generateCodeExploitant();
+    
+    // Réinitialiser les prévisualisations d'images
+    const photoExploitantPreview = document.getElementById('photoExploitantPreview');
+    if (photoExploitantPreview) {
+      photoExploitantPreview.style.display = 'none';
+      photoExploitantPreview.src = '';
+    }
+    
+    const photoIDNationalePreview = document.getElementById('photoIDNationalePreview');
+    if (photoIDNationalePreview) {
+      photoIDNationalePreview.style.display = 'none';
+      photoIDNationalePreview.src = '';
+    }
+    
+    // Initialiser les options du formulaire
+    initializeForm();
+    
+    // Mettre à jour le titre du modal
+    const modalTitle = document.getElementById('cohorteFormModalLabel');
+    if (modalTitle) {
+      modalTitle.textContent = 'Ajouter un Exploitant';
+    }
+    
+    // Mettre en place les écouteurs pour la conversion en majuscules
+    setupUppercaseListeners();
+    
+    // Afficher le modal
+    try {
+      const modalElement = document.getElementById('cohorteFormModal');
+      if (!modalElement) return;
+      
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    } catch (error) {
+      console.error("Erreur lors de l'affichage du modal:", error);
+    }
+  }
+  
+  // Fonction pour générer automatiquement un code exploitant
+  function generateCodeExploitant() {
+    const codeExploitantField = document.getElementById('codeExploitant');
+    if (!codeExploitantField) return;
+    
+    codeExploitantField.disabled = true;
+    codeExploitantField.value = "Génération...";
+    
+    google.script.run
+      .withSuccessHandler(function(newCode) {
+        if (codeExploitantField) {
+          codeExploitantField.value = newCode;
+          codeExploitantField.disabled = false;
+        }
+      })
+      .withFailureHandler(function(error) {
+        if (codeExploitantField) {
+          codeExploitantField.value = "";
+          codeExploitantField.disabled = false;
+        }
+      })
+      .generateNewExploitantCode();
+  }
+  
+  // Fonction pour éditer une entrée existante
+  function editCohorteEntry(rowIndex) {
+    if (!cohorteData || !cohorteData.records) return;
+    
+    const record = cohorteData.records.find(r => r.rowIndex === rowIndex);
+    if (!record) {
+      alert('Enregistrement non trouvé.');
+      return;
+    }
+    
+    const form = document.getElementById('cohorteForm');
+    if (!form) return;
+    
+    form.reset();
+    setValue('rowIndex', rowIndex);
+    
+    // Initialiser les options du formulaire
+    initializeForm();
+    
+    // Définir les valeurs des champs du formulaire
+    cohorteData.headers.forEach(header => {
+      const fieldId = headerToFieldId(header);
+      const field = document.getElementById(fieldId);
+      if (!field) return;
+      
+      if (field.multiple && field.tagName === 'SELECT' && header === 'Types conseils') {
+        // Traitement spécial pour le champ Types conseils (select multiple)
+        const values = (record[header] || '').split(', ').filter(val => val.trim() !== '');
+        
+        // Sélectionner les options correspondantes
+        Array.from(field.options).forEach(option => {
+          option.selected = values.includes(option.value);
+        });
+        
+        // Si la valeur existante ne correspond à aucune option prédéfinie, l'ajouter temporairement
+        values.forEach(value => {
+          const exists = Array.from(field.options).some(option => option.value === value);
+          if (!exists && value) {
+            const newOption = document.createElement('option');
+            newOption.value = value;
+            newOption.textContent = value;
+            newOption.selected = true;
+            field.appendChild(newOption);
+          }
+        });
+      } else if (field.tagName === 'SELECT' && !field.multiple) {
+        // Pour les autres select (non-multiples)
+        const value = record[header] || '';
+        
+        // Vérifier si la valeur existe dans les options
+        const exists = Array.from(field.options).some(option => option.value === value);
+        
+        if (exists) {
+          field.value = value;
+        } else if (value) {
+          // Si la valeur n'existe pas mais n'est pas vide, ajouter une option temporaire
+          const newOption = document.createElement('option');
+          newOption.value = value;
+          newOption.textContent = value;
+          field.appendChild(newOption);
+          field.value = value;
+        }
+      } else {
+        // Pour les autres types de champs (input, etc.)
+        field.value = record[header] || '';
+        
+        // Traitement spécial pour les champs de photo
+        if (header === 'Photo Exploitant' || header === 'Photo ID Nationale') {
+          const previewId = (header === 'Photo Exploitant') ? 'photoExploitantPreview' : 'photoIDNationalePreview';
+          updateImagePreview(fieldId, previewId);
+        }
+      }
+    });
+    
+    // Mettre en place les écouteurs pour la conversion en majuscules
+    setupUppercaseListeners();
+    
+    // Mettre à jour le titre du modal
+    const modalTitle = document.getElementById('cohorteFormModalLabel');
+    if (modalTitle) {
+      modalTitle.textContent = 'Modifier un Exploitant';
+    }
+    
+    // Afficher le modal
+    try {
+      const modalElement = document.getElementById('cohorteFormModal');
+      if (!modalElement) return;
+      
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    } catch (error) {
+      console.error("Erreur lors de l'affichage du modal:", error);
+    }
+  }
+  
+  // Fonction pour convertir un en-tête en ID de champ
+  function headerToFieldId(header) {
+    // Mapping des en-têtes vers les IDs des champs du formulaire
+    const mapping = {
+      'Code Exploitant': 'codeExploitant',
+      'Période d\'Adhésion': 'periodeAdhesion',
+      'Nom Exploitant': 'nomExploitant',
+      'Prénom Exploitant': 'prenomExploitant',
+      'Photo Exploitant': 'photoExploitant',
+      'Sexe': 'sexe',
+      'Photo ID Nationale': 'photoIDNationale',
+      'Année naissance': 'anneeNaissance',
+      'Tranche d\'âge': 'trancheAge',
+      'Contact 1 (sans +229 01)': 'contact1',
+      'Contact 2 (sans +229 01)': 'contact2',
+      'Contact S/C (sans +229 01)': 'contactSC',
+      'Types conseils': 'typesConseils',
+      'Dénomination l\'OP': 'denominationOP',
+      'Pôle': 'pole',
+      'Département': 'departement',
+      'Commune': 'commune',
+      'Arrondissement': 'arrondissement',
+      'Village': 'village',
+      'Saison': 'saison',
+      'Type spéculation': 'typeSpeculation',
+      'Nom la variété « local »': 'nomVarieteLocal',
+      'Superficie emblavée « ha »': 'superficieEmblavee',
+      'Quantité semence « kg »': 'quantiteSemence',
+      'Coût semence « FCFA »': 'coutSemence',
+      'Mode labour': 'modeLabour',
+      'Mode semis': 'modeSemis',
+      'Densité semis « Nb plant/ha »': 'densiteSemis',
+      'Période semis': 'periodeSemis',
+      'Durée cycle « J »': 'dureeCycle',
+      'Quantité engrais « kg »': 'quantiteEngrais',
+      'Coût engrais « FCFA »': 'coutEngrais',
+      'Quantité insecticide « L »': 'quantiteInsecticide',
+      'Coût insecticide « FCFA »': 'coutInsecticide',
+      'Quantité Herbicide « g »': 'quantiteHerbicideG',
+      'Quantité Herbicide « L »': 'quantiteHerbicideL',
+      'Coût Herbicide « FCFA »': 'coutHerbicide',
+      'Coût Total Intrants': 'coutTotalIntrants',
+      'Quantité travail MOF « HJ »': 'quantiteTravailMOF',
+      'Quantité travail RE « HJ »': 'quantiteTravailRE',
+      'Valeur MOFT « MOF+RE »': 'valeurMOFT',
+      'Quantité travail autre « HJ »': 'quantiteTravailAutre',
+      'Valeur travail autre « FCFA »': 'valeurTravailAutre',
+      'Quantité travail Mooc « HJ »': 'quantiteTravailMooc',
+      'Coût travail Mooc « FCFA »': 'coutTravailMooc',
+      'Coût total MO « FCFA »': 'coutTotalMO',
+      'Autres charges variables': 'autresChargesVariables',
+      'Coût production': 'coutProduction',
+      'Quantité récolté « KG »': 'quantiteRecolte',
+      'Rendement « Kg/ha »': 'rendement',
+      'Prix « FCFA »': 'prix',
+      'Produit d\'activité': 'produitActivite',
+      'MARI': 'mari',
+      'MARI/ha': 'mariHa',
+      'MB': 'mb',
+      'MB/ha': 'mbHa'
+    };
+    
+    return mapping[header] || header.toLowerCase().replace(/[^a-z0-9]/gi, '');
+  }
+  
+  // Fonction pour convertir un ID de champ en en-tête
+  function fieldIdToHeader(fieldId) {
+    // Mapping inverse de headerToFieldId
+    const mapping = {
+      'codeExploitant': 'Code Exploitant',
+      'periodeAdhesion': 'Période d\'Adhésion',
+      'nomExploitant': 'Nom Exploitant',
+      'prenomExploitant': 'Prénom Exploitant',
+      'photoExploitant': 'Photo Exploitant',
+      'sexe': 'Sexe',
+      'photoIDNationale': 'Photo ID Nationale',
+      'anneeNaissance': 'Année naissance',
+      'trancheAge': 'Tranche d\'âge',
+      'contact1': 'Contact 1 (sans +229 01)',
+      'contact2': 'Contact 2 (sans +229 01)',
+      'contactSC': 'Contact S/C (sans +229 01)',
+      'typesConseils': 'Types conseils',
+      'denominationOP': 'Dénomination l\'OP',
+      'pole': 'Pôle',
+      'departement': 'Département',
+      'commune': 'Commune',
+      'arrondissement': 'Arrondissement',
+      'village': 'Village',
+      'saison': 'Saison',
+      'typeSpeculation': 'Type spéculation',
+      'nomVarieteLocal': 'Nom la variété « local »',
+      'superficieEmblavee': 'Superficie emblavée « ha »',
+      'quantiteSemence': 'Quantité semence « kg »',
+      'coutSemence': 'Coût semence « FCFA »',
+      'modeLabour': 'Mode labour',
+      'modeSemis': 'Mode semis',
+      'densiteSemis': 'Densité semis « Nb plant/ha »',
+      'periodeSemis': 'Période semis',
+      'dureeCycle': 'Durée cycle « J »',
+      'quantiteEngrais': 'Quantité engrais « kg »',
+      'coutEngrais': 'Coût engrais « FCFA »',
+      'quantiteInsecticide': 'Quantité insecticide « L »',
+      'coutInsecticide': 'Coût insecticide « FCFA »',
+      'quantiteHerbicideG': 'Quantité Herbicide « g »',
+      'quantiteHerbicideL': 'Quantité Herbicide « L »',
+      'coutHerbicide': 'Coût Herbicide « FCFA »',
+      'coutTotalIntrants': 'Coût Total Intrants',
+      'quantiteTravailMOF': 'Quantité travail MOF « HJ »',
+      'quantiteTravailRE': 'Quantité travail RE « HJ »',
+      'valeurMOFT': 'Valeur MOFT « MOF+RE »',
+      'quantiteTravailAutre': 'Quantité travail autre « HJ »',
+      'valeurTravailAutre': 'Valeur travail autre « FCFA »',
+      'quantiteTravailMooc': 'Quantité travail Mooc « HJ »',
+      'coutTravailMooc': 'Coût travail Mooc « FCFA »',
+      'coutTotalMO': 'Coût total MO « FCFA »',
+      'autresChargesVariables': 'Autres charges variables',
+      'coutProduction': 'Coût production',
+      'quantiteRecolte': 'Quantité récolté « KG »',
+      'rendement': 'Rendement « Kg/ha »',
+      'prix': 'Prix « FCFA »',
+      'produitActivite': 'Produit d\'activité',
+      'mari': 'MARI',
+      'mariHa': 'MARI/ha',
+      'mb': 'MB',
+      'mbHa': 'MB/ha'
+    };
+    
+    return mapping[fieldId] || '';
+  }
+  
+  // Fonction pour convertir les valeurs des champs texte en majuscules
+  function convertFormFieldsToUppercase() {
+    const form = document.getElementById('cohorteForm');
+    if (!form) return;
+    
+    const textInputs = form.querySelectorAll('input[type="text"], select:not([id="anneeNaissance"])');
+    textInputs.forEach(input => {
+      if (input.value) {
+        input.value = input.value.toUpperCase();
+      }
+    });
+  }
+  
+  // Fonction pour enregistrer les données du formulaire
+  function saveCohorteData() {
+    // Convertir les valeurs des champs texte en majuscules
+    convertFormFieldsToUppercase();
+    
+    const form = document.getElementById('cohorteForm');
+    if (!form) return;
+    
+    // Récupérer les valeurs du formulaire
+    const formData = {};
+    const formElements = form.elements;
+    
+    for (let i = 0; i < formElements.length; i++) {
+      const element = formElements[i];
+      if (element.id && element.id !== 'rowIndex') {
+        const header = fieldIdToHeader(element.id);
+        if (header) {
+          // Traitement spécial pour les selects multiples
+          if (element.multiple && element.tagName === 'SELECT') {
+            formData[header] = Array.from(element.selectedOptions).map(option => option.value);
+          } else {
+            formData[header] = element.value;
+          }
+        }
+      }
+    }
+    
+    // Récupérer l'index de ligne pour la mise à jour
+    const rowIndex = getValue('rowIndex');
+    
+    // Afficher un message de chargement
+    const btnSave = document.getElementById('btnSaveCohorte');
+    if (!btnSave) return;
+    
+    const originalBtnText = btnSave.innerHTML;
+    btnSave.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Enregistrement...`;
+    btnSave.disabled = true;
+    
+    if (rowIndex) {
+      // Mettre à jour une entrée existante
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btnSave.innerHTML = originalBtnText;
+          btnSave.disabled = false;
+          
+          if (result.success) {
+            try {
+              const modalElement = document.getElementById('cohorteFormModal');
+              if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                  modalInstance.hide();
+                }
+              }
+            } catch (error) {
+              console.error("Erreur lors de la fermeture du modal:", error);
+            }
+            
+            alert(result.message);
+            loadCohorteData();
+          } else {
+            alert(result.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          btnSave.innerHTML = originalBtnText;
+          btnSave.disabled = false;
+          alert('Erreur: ' + error);
+        })
+        .updateCohorteEntry(parseInt(rowIndex), formData);
+    } else {
+      // Ajouter une nouvelle entrée
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btnSave.innerHTML = originalBtnText;
+          btnSave.disabled = false;
+          
+          if (result.success) {
+            try {
+              const modalElement = document.getElementById('cohorteFormModal');
+              if (modalElement) {
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                  modalInstance.hide();
+                }
+              }
+            } catch (error) {
+              console.error("Erreur lors de la fermeture du modal:", error);
+            }
+            
+            alert(result.message);
+            loadCohorteData();
+          } else {
+            alert(result.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          btnSave.innerHTML = originalBtnText;
+          btnSave.disabled = false;
+          alert('Erreur: ' + error);
+        })
+        .addCohorteEntry(formData);
+    }
+  }
+  
+  // Fonction pour confirmer la suppression d'une entrée
+  function confirmDeleteCohorteEntry(rowIndex) {
+    setValue('deleteRowIndex', rowIndex);
+    
+    try {
+      const modalElement = document.getElementById('deleteConfirmModal');
+      if (!modalElement) return;
+      
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    } catch (error) {
+      console.error("Erreur lors de l'affichage du modal de confirmation:", error);
+    }
+  }
+  
+  // Fonction pour supprimer une entrée
+  function deleteCohorteEntry() {
+    const rowIndex = getValue('deleteRowIndex');
+    if (!rowIndex) return;
+    
+    const btnDelete = document.getElementById('btnConfirmDelete');
+    if (!btnDelete) return;
+    
+    const originalBtnText = btnDelete.innerHTML;
+    btnDelete.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Suppression...`;
+    btnDelete.disabled = true;
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        btnDelete.innerHTML = originalBtnText;
+        btnDelete.disabled = false;
+        
+        if (result.success) {
+          try {
+            const modalElement = document.getElementById('deleteConfirmModal');
+            if (modalElement) {
+              const modalInstance = bootstrap.Modal.getInstance(modalElement);
+              if (modalInstance) {
+                modalInstance.hide();
+              }
+            }
+          } catch (error) {
+            console.error("Erreur lors de la fermeture du modal de confirmation:", error);
+          }
+          
+          alert(result.message);
+          loadCohorteData();
+        } else {
+          alert(result.message);
+        }
+      })
+      .withFailureHandler(function(error) {
+        btnDelete.innerHTML = originalBtnText;
+        btnDelete.disabled = false;
+        alert('Erreur: ' + error);
+      })
+      .deleteCohorteEntry(parseInt(rowIndex));
+  }
+  
+  // Fonction utilitaire pour définir la valeur d'un élément
+  function setValue(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.value = value;
+    }
+  }
+</script>
