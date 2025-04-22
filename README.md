@@ -1,10 +1,10 @@
 # Gestion Cohorte
 
-Application web développée avec Google Apps Script pour la gestion des exploitants agricoles et des organisations de producteurs dans le cadre de la convention 3 de partenariat productif entre la FUPRO-Bénin et le PADAAM (Projet d'Appui au Développement Agricole et à l'Accès au Marché).
+Application web développée avec Google Apps Script pour la gestion des exploitants agricoles et des organisations de producteurs dans le cadre d'une convention de partenariat productif entre une faitière nationale et un projet de développement agricole.
 
 ## 📋 Présentation
 
-Cette application a été développée pour l'assurance qualité des données au sein de la FUPRO-Bénin dans le cadre du suivi-évaluation de la convention 3. Elle permet de gérer efficacement les données des exploitants agricoles de la cohorte 3, ainsi que leurs organisations de producteurs (OP) associées, en offrant une interface conviviale pour l'ajout, la modification, la suppression et la consultation des données, avec des fonctionnalités de filtrage avancées.
+Cette application a été développée pour l'assurance qualité des données au sein de la faitière nationale dans le cadre du suivi-évaluation de sa troisième convention avec le projet. Elle permet de gérer efficacement les données des exploitants agricoles de la cohorte 3, ainsi que leurs organisations de producteurs (OP) associées, en offrant une interface conviviale pour l'ajout, la modification, la suppression et la consultation des données, avec des fonctionnalités de filtrage avancées.
 
 ## ✨ Fonctionnalités principales
 
@@ -47,8 +47,8 @@ Cette application a été développée pour l'assurance qualité des données au
 
 L'application utilise deux feuilles principales dans un classeur Google Sheets :
 
-1. **Nouvelle Cohorte** : Contient les données des exploitants agricoles
-2. **Liste_OP_20250312_092734** : Contient les données des organisations de producteurs
+1. **Nouvelle_Cohorte** : Contient les données des exploitants agricoles
+2. **Liste_OP** : Contient les données des organisations de producteurs
 
 ### Champs principaux des exploitants
 
@@ -79,7 +79,7 @@ L'application utilise deux feuilles principales dans un classeur Google Sheets :
    - Cliquez sur "Déployer"
 
 4. **Configurer les feuilles de calcul**
-   - Créez deux feuilles nommées "Nouvelle Cohorte" et "Liste_OP_20250312_092734"
+   - Créez deux feuilles nommées "Nouvelle_Cohorte" et "Liste_OP"
    - Assurez-vous que les en-têtes correspondent à ceux attendus par l'application
 
 ## 👨‍💻 Utilisation
@@ -133,13 +133,13 @@ L'application utilise deux feuilles principales dans un classeur Google Sheets :
 
 ## 🤝 Contribution
 
-Cette application a été développée par le service de suivi-évaluation de la FUPRO-Bénin pour un usage interne. Les modifications et améliorations sont gérées en interne par le développeur responsable.
+Cette application a été développée par le service de suivi-évaluation de la faitière nationale pour un usage interne. Les modifications et améliorations sont gérées en interne par le développeur responsable.
 
-Pour suggérer des améliorations ou signaler des problèmes, veuillez contacter directement le développeur au sein de la FUPRO-Bénin.
+Pour suggérer des améliorations ou signaler des problèmes, veuillez contacter directement le développeur au sein de la faitière nationale.
 
 ## 📄 Licence
 
-Ce projet est développé pour usage interne à la FUPRO-Bénin. Tous droits réservés.
+Ce projet est développé pour usage interne à la faitière nationale. Tous droits réservés.
 
 ## 📞 Contact
 
@@ -147,4 +147,4 @@ Pour toute question concernant cette application, veuillez me contacter directem
 
 ---
 
-Développé dans le cadre du partenariat entre la FUPRO-Bénin et le PADAAM © 2025
+Développé dans le cadre du partenariat entre la faitière nationale et le projet de développement agricole © 2025
