@@ -45,9 +45,14 @@ function calculateTrancheAge(anneeNaissance) {
   
   return age <= 35 ? 'JEUNE' : 'ADULTE';
 }// Configuration globale
-const SPREADSHEET_ID = '#######';
-const NOUVELLE_COHORTE_SHEET_NAME = '#######';
-const LISTE_OP_SHEET_NAME = '#######';
+// Remplace par l’ID du fichier Google Sheets (celui qui apparaît dans l’URL entre /d/ et /edit)
+const SPREADSHEET_ID = 'votre_id_de_tableur_ici';
+
+// Remplace par le nom de l’onglet contenant la nouvelle cohorte à traiter
+const NOUVELLE_COHORTE_SHEET_NAME = 'NomFeuilleNouvelleCohorte';
+
+// Remplace par le nom de l’onglet contenant la liste de référence des OP
+const LISTE_OP_SHEET_NAME = 'NomFeuilleListeOP';
 
 // Définition des champs obligatoires
 const REQUIRED_FIELDS = [
