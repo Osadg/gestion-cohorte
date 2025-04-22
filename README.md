@@ -1,4 +1,4 @@
-# Gestion Cohorte 3 PADAAM
+# Gestion Cohorte
 
 Application web développée avec Google Apps Script pour la gestion des exploitants agricoles et des organisations de producteurs dans le cadre de la convention 3 de partenariat productif entre la FUPRO-Bénin et le PADAAM (Projet d'Appui au Développement Agricole et à l'Accès au Marché).
 
